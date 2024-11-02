@@ -23,20 +23,22 @@
 #include <ESP8266WiFi.h>
 #include <SoftwareSerial.h>
 #include <TinyGPS++.h>
-#include <SD.h>
+#include <SdFat.h>
 
-const int CHIP_SELECT = D8;  // Chip select pin for SD card
-const int GPS_RX = D1;       // GPS module RX pin
-const int GPS_TX = D2;       // GPS module TX pin
+const int CHIP_SELECT = 8;  // Chip select pin for SD card
+const int GPS_RX = 1;       // GPS module RX pin
+const int GPS_TX = 2;       // GPS module TX pin
+
 SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
 TinyGPSPlus gps;
+SdFat SD;
 
 void setup() {
   Serial.begin(115200);
   gpsSerial.begin(9600);
 
   // Initialize SD card
-  if (!SD.begin(CHIP_SELECT)) {
+  if (!SD.begin(CHIP_SELECT, SD_SCK_MHZ(4))) {  // Nastavenie nižšej frekvencie SPI pre stabilitu
     Serial.println("SD card initialization failed!");
     return;
   }
@@ -65,7 +67,7 @@ void loop() {
         unsigned long timestamp = gps.time.value();  // Get timestamp from GPS data
 
         // Write GPS and WiFi data to SD card
-        File dataFile = SD.open("/gps_wifi_data.txt", FILE_APPEND);
+        FsFile dataFile = SD.open("/gps_wifi_data.txt", FILE_WRITE);
         if (dataFile) {
           // Write GPS data
           dataFile.print("Latitude: ");
@@ -102,7 +104,7 @@ void loop() {
             dataFile.println(" dBm");
           }
 
-          dataFile.println("--------------------------------------------");  // Separate entries
+          dataFile.println("----");  // Separate entries
           dataFile.close();
           Serial.println("Data saved to SD card.");
         } else {
